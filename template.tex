@@ -1,0 +1,623 @@
+\documentclass[11pt]{beamer}
+
+\usetheme[
+    progressbar=foot,
+    numbering=fraction,
+]{metropolis}
+\usecolortheme{aggie}
+
+\usepackage{appendixnumberbeamer}
+
+\usepackage{booktabs}
+
+\usepackage{changepage}
+
+\usepackage{pgfplots}
+\usepgfplotslibrary{dateplot}
+
+\usepackage{xspace}
+\newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
+
+\usepackage[
+    backend=biber,
+    abbreviate=true,
+    hyperref=true,
+    backref=true,
+    sorting=none,
+]{biblatex}
+\addbibresource{resources.bib}
+\AtBeginBibliography{\tiny}
+
+
+
+\DeclareCiteCommand{\longcite}
+  {\usebibmacro{prenote}}
+  {\usebibmacro{citeindex}%
+   \printtext[bibhyperref]{%
+   \printnames[family-given]{author}%
+   \setunit{\addcomma\addspace}%
+   \printfield{title}%
+   \setunit{\addcomma\addspace}%
+   {%
+%    \printfield{journaltitle}%
+%    \addspace%
+%    \printfield{volume}%
+%    \setunit{\addcomma\addspace}%
+%    \printfield{year}%
+   }%
+   \setunit{\addcomma\addspace}%
+   % \setunit{\addcomma{}\addspace{}vol.}\printfield{volume}%
+   }}%
+  {\addsemicolon\addspace}
+  {\usebibmacro{postnote}}
+
+
+\renewcommand{\footnoterule}{}
+\setbeamercolor{framesource}{fg=darkgray}
+\setbeamerfont{framesource}{size=\tiny}
+\defbeamertemplate{footnote}{unnumbered}{
+    \usebeamercolor[fg]{framesource}%
+    \usebeamerfont{framesource}%
+    \insertfootnotetext%
+}
+
+\makeatletter
+\def\@makefnmark{}
+\makeatletter
+
+\setbeamertemplate{footnote}{%
+  \setbeamertemplate{footnote}[unnumbered]%
+  \parindent 1em\noindent
+  \raggedright
+  \insertfootnotetext\par
+}
+
+\newcommand{\source}[2]{%
+    \setbeamertemplate{footnote}[unnumbered]%
+    \footnotetext{{#1}{\textcite{#2}}}%
+}
+
+\usefonttheme[onlymath]{serif}
+
+\AtEveryCitekey{\clearfield{doi}\clearfield{url}}
+
+\usepackage[main=english]{babel}
+
+\usepackage{ragged2e}
+
+\usepackage{lipsum}
+
+\usepackage{tabularx}
+
+\usepackage{caption}
+\captionsetup{labelformat=empty}
+
+\usepackage{wrapfig}
+\usepackage{textcomp}
+
+\usepackage{hyperref}
+% \usepackage{doi}
+
+\usepackage{xfakebold}
+\newcommand{\ultrabold}[1]{{\setBold[0.5]{#1}\unsetBold}}
+
+
+\setbeamertemplate{caption}[unnumbered]
+\setbeamertemplate{frametitle continuation}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Info
+
+\title{Post-Retrieval Semantic Re-Ranking via Zero-shot LLMs for Segmentation-Free Document Image Keyword Spotting}
+% \setbeamerfont{title}{size=\LARGE, series=\bfseries}
+
+\subtitle{}%
+\setbeamerfont{subtitle}{size=\scriptsize}%
+\date{Thursday, 10 July 2025}%
+\setbeamerfont{date}{size=\scriptsize}%
+
+\author{Stergios Papazis}%
+\institute{%
+Department of Computer Science \& Engineering\\
+School of Engineering\\
+University of Ioannina}
+\titlegraphic{%
+\hfill%
+\begin{picture}(0,0)%
+    \put(0,-140){%
+        \makebox(0,0)[rt]{\includegraphics[height=3cm]{figures/CSE-UOI-LOGO-EN.png}}%
+    }
+\end{picture}%
+}
+\setbeamerfont{institute}{size=\scriptsize}
+
+
+\usepackage{amsmath}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\begin{document}
+
+
+\maketitle
+
+\begin{frame}{Table of contents}
+  \setbeamertemplate{section in toc}[sections numbered]
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+
+\section{Keyword Spotting Overview}
+
+\begin{frame}{Historical Document Image Analysis}%
+    \begin{columns}%
+        \begin{column}{0.65\linewidth}%
+            \begin{block}{Document preservation}%
+                \begin{itemize}%
+                    \item digitization $\to$ collections of document images%
+                \end{itemize}%
+            \end{block}%
+            \begin{block}{Document image analysis}%
+                \begin{itemize}%
+                    \item search%
+                    \item summarize%
+                    \item automatic translation%
+                    \item question answering%
+                    \item named entity linking%
+                \end{itemize}%
+            \end{block}%
+        \end{column}%
+        \begin{column}{0.4\linewidth}%
+            \centering%
+            \includegraphics[height=0.8\textheight]{figures/272.jpg}%
+        \end{column}%
+    \end{columns}%
+\end{frame}%
+
+\begin{frame}{Content-Based Image Retrieval}%
+    \begin{columns}%
+        \begin{column}{0.65\linewidth}%
+            \begin{block}{Problem}%
+                \begin{itemize}%
+                    \item efficient retrieval of keywords in digitized documents%%
+                \end{itemize}%
+            \end{block}%
+            \vspace{-0.35cm}%
+            \uncover<2->{%
+                \begin{block}{Naive approach}%
+                    \begin{itemize}%
+                        \item text transcription (e.g., OCR)%
+                        \item retrieval on text%
+                        \item<3-> recognition errors%
+                    \end{itemize}%
+                \end{block}%
+            }%
+            \vspace{-0.35cm}%
+            \uncover<3->{%
+                \begin{block}{Challenges}%
+                \begin{itemize}%
+                    \item intra/inter- writer variability%
+                    \item physical deterioration: ink fading, staining, paper degradation%
+                \end{itemize}%
+                \end{block}%
+            }%
+        \end{column}%
+        \begin{column}{0.4\linewidth}%
+            \centering%
+            \includegraphics<1->[height=0.8\textheight]{figures/272_instances.jpg}%
+        \end{column}%
+    \end{columns}%
+\end{frame}%
+
+\begin{frame}{Keyword Spotting}%
+    \begin{columns}%
+        \begin{column}{0.65\linewidth}%
+            \begin{block}{KWS\@: \emph{recognition-free} image retrieval}%
+                \begin{itemize}%%
+                    \item given a keyword find all instances in document corpus%
+                    \item returned them sorted by relevance%
+                \end{itemize}%
+            \end{block}%
+            \vspace{-0.35cm}%
+            \begin{block}{Enables}%
+                \begin{itemize}%
+                    \item efficient keyword-based search%
+                    \item improved browsing experience%
+                \end{itemize}%
+            \end{block}%
+            \vspace{-0.35cm}%
+            \begin{block}{Avoids}%
+                \begin{itemize}%
+                    \item automatic transcription $\to$ no recognition errors%
+                    \item manual annotation $\to$ cost effective%
+                \end{itemize}%
+            \end{block}%
+        \end{column}%
+        \begin{column}{0.4\linewidth}%
+            \centering%
+            \includegraphics<1->[height=0.8\textheight]{figures/272_instances.jpg}%
+        \end{column}%
+    \end{columns}%
+\end{frame}%
+
+\begin{frame}{Keyword Spotting: General Architecture}%
+    \centering%
+    \includegraphics[height=0.8\textheight]{figures/general_kws.pdf}%
+    \source{}{GIOTIS2017}
+\end{frame}%
+
+\begin{frame}{Keyword Spotting: General Architecture}%
+    \centering%
+    \includegraphics[height=0.35\textheight]{figures/almazan.png}\\%
+    \vspace{0.3cm}%
+        \includegraphics[width=0.5\linewidth]{figures/phoc.png}%
+        \includegraphics[width=0.5\linewidth]{figures/dctow.png}%
+    \source{Figures: }{Almazan14PAMI,Wilkinson17}%
+\end{frame}%
+
+\begin{frame}{Keyword Spotting: Taxonomies}%%
+    \begin{block}{KWS approaches classified by assumptions}%
+        \begin{itemize}%
+            \item Input Modularity%
+                \begin{itemize}%
+                    \item[-] query-by-example: image example%
+                    \item[-] query-by-string: alphanumeric string%
+                \end{itemize}%
+            \item Segmentation%
+                \begin{itemize}%
+                    \item[-] segmentation-based: word images or line images%
+                    \item[-] segmentation-free: document images%
+                \end{itemize}%
+            \item Machine Learning%
+                \begin{itemize}%
+                    \item[-] learning-free: handcraft features, no manual annotations%
+                    \item[-] learning-based: superior performance (CNN, HMM, SVM)%
+                \end{itemize}%
+            \item Similarity%
+                \begin{itemize}%
+                    \item[-] verbatim: visual resemblance%
+                    \item[-] semantic: semantic resemblance%
+                    \item[-] hybrid: verbatim \& semantic%
+                \end{itemize}%
+        \end{itemize}%
+    \end{block}%
+\end{frame}%
+
+\begin{frame}[fragile]{Keyword Spotting: Metrics}%
+    \only<1>{%
+        \begin{block}<1>{Information Retrieval Metrics}%
+        \begin{itemize}%
+            % \vspace{0.3cm}%
+            \item $\text{Precision}
+                = \frac{\text{number of \textbf{relevant retrieved} instances}}{\text{number of \textbf{retrieved} instances}}
+                = \frac{TP}{TP+FP}$
+            \vspace{0.3cm}%
+            \item $\text{Recall}
+                = \frac{\text{number of \textbf{relevant retrieved} instances}}{\text{number of \textbf{relevant} instances}}
+                = \frac{TP}{TP+FN}$
+            \vspace{0.2cm}%
+            \item $ \text{Average Precision} = \dfrac{1}{R}\sum\limits_{k=1}^n \mathrm{P}\text{@}k \cdot rel(k)$
+                \begin{itemize}\footnotesize%
+                    \item[-] \footnotesize Precision at rank k: $\mathrm{P}\text{@}k = $ precision of top k retrievals%
+                    \vspace{0.05cm}%
+                    \item[-] \footnotesize $rel(k) = \bigg\{%
+                            \begin{array}{l}%
+                                1, \quad \text{if k-th instance relevant}\\%
+                                0, \quad \text{otherwise}%
+                            \end{array}$%
+                    \vspace{0.05cm}%
+                    \item[-] \footnotesize $R$ total relevant items%
+                \end{itemize}%
+            \item Mean Average Precision (mAP):\\ mean of Average Precision computed over all queries%
+        \end{itemize}%
+    \end{block}%
+    }%
+        \only<2>{%
+            Average Precision estimates area under Precision-Recall curve.%
+            \begin{center}%
+                \includegraphics[width=0.8\linewidth]{figures/precision_recall_curve.pdf}%
+            \end{center}%
+        }%
+    \end{frame}
+
+\begin{frame}{Keyword Spotting: Metrics}%
+    \begin{block}{When is an instance relevant?}%
+        \begin{itemize}%
+            \item Intersection over Union (IoU)%%
+            \begin{center}%
+                \includegraphics[width=0.5\textwidth]{figures/iou.png}%
+            \end{center}%
+            \item $\text{IoU}(\text{prediction}, \text{ground-truth}) \ge $ threshold%
+            \item typical thresholds: $ \bigg\{%
+                \begin{array}{ccc}%
+                    0.25 & \to & \text{mAP@25}\\%
+                    0.5  & \to & \text{mAP@50}%
+                \end{array}$%
+            \item at most one instance considered relevant%
+        \end{itemize}%
+    \end{block}%
+\end{frame}
+
+
+\section{Proposed System}
+
+\begin{frame}{Proposed System: Overview}%
+    \begin{block}{Post-retrieval semantic re-ranking via zero-shot LLMs for segmentation-free KWS}%
+        \begin{center}%
+            \begin{adjustwidth}{-1cm}{0cm}%
+                \centering
+                \includegraphics[width=1.06\linewidth]{figures/reranking.pdf}%
+            \end{adjustwidth}%
+        \end{center}%
+    \end{block}%
+\end{frame}%
+
+\begin{frame}{Proposed System: Overview}%
+    \begin{block}{Post-retrieval semantic re-ranking via zero-shot LLMs for segmentation-free KWS}%
+    \end{block}%
+    \begin{block}{Objectives}%
+        \begin{itemize}%
+            \item[1.] improve exact retrieval (increase mAP)%
+            \item[2.] enhance semantic quality of search%
+        \end{itemize}%
+    \end{block}%
+    \begin{block}{Pipeline variants}%
+        \begin{itemize}%
+            \item \textbf{KWS Baselines}: WordRetrievalNet, KWS-Simplified%
+            \item \textbf{Decoders}: KWS-Simplified-based, TrOCR (visual-textual transformer)%
+            \item \textbf{Semantic LLM}: Roberta, MPNet, MiniLM %
+        \end{itemize}%
+    \end{block}%
+\end{frame}%
+
+\begin{frame}{Baseline: WordRetrievalNet}%
+    \begin{center}%
+        \includegraphics[height=0.5\textheight]{figures/wrn.pdf}%
+    \end{center}%
+    \begin{block}{Loss}%
+        \begin{itemize}
+            \item dice coefficient loss: $1 - \frac{2|X \cap Y|}{|X|+|Y|}$%
+            \item distance-IoU loss: IoU loss penalizing center distances%
+            \item  cosine loss%
+        \end{itemize}
+    \end{block}%
+    \source{}{Zhao2020ACCV}%
+\end{frame}%
+
+\begin{frame}{Baseline: Segmentation-free KWS Simplified}%
+    \only<1>{%
+        \begin{center}%%
+            \includegraphics[height=0.5\textheight]{figures/segfreekws.pdf}%%
+        \end{center}%%
+        {\footnotesize
+        \begin{block}{Offline stage}
+            \begin{itemize}
+                \item character $c$, image coordinates $(i,j)$, $F(i,j,c)$ probability, $S(i,j)$ scale
+                \item $y_c = \sum\limits_{i=s_1}^{e_1} \sum\limits_{j=s_2}^{e_2} F(i,j,c)\cdot{}S(i,j)$ (regression)
+                \item Connectionist Temporal Classification (CTC)
+                \item training and pre-computing of $F,S$
+            \end{itemize}
+        \end{block}
+        }
+    }%
+    \only<2>{%
+        \begin{center}%%
+            \includegraphics[width=\linewidth]{figures/segfreekws_postprocessing.pdf}%
+        \end{center}%%
+        {\footnotesize
+        \begin{block}{Online stage}
+        \begin{itemize}
+            \item estimate first character location based on query first char
+            \item estimate bounding box with query length
+            \item pyramidal counting (like PHOC)
+            \item CTC-based re-scoring
+        \end{itemize}
+        \end{block}}
+    }%
+    \source{}{retsinas2023keyword}%
+\end{frame}
+
+
+\section{Experimental Evaluation}
+
+\begin{frame}{Experimental Evaluation: Datasets}%
+    \begin{columns}%
+        \begin{column}{0.55\linewidth}%
+            \only<1>{%
+                \begin{block}{George Washington Dataset (GW)}%
+                    \begin{itemize}%
+                        \item 20 handwritten letters%%
+                        \item $4,860$ annotated words%
+                        \item few writers {(single-writer)}%
+                        \item 4-fold cross validation%
+                        \item 14 train/1 validate/5 test%
+                        \item test queries: {\footnotesize all unique transcriptions test pages}%
+                    \end{itemize}%
+                \end{block}%
+                \source{}{Lavrenko04}
+            }%
+            \only<2>{%
+                \begin{block}<2>{IAM Handwriting Database}%
+                    \begin{itemize}%
+                        \item $1,539$ forms%
+                        \item $115,320$ annotated words%
+                        \item $657$ writers%
+                        \item official split (1,087/220/232)%
+                        \item test queries: {\footnotesize all unique transcriptions test pages, excluding stopwords, non alphanumeric}%
+                    \end{itemize}%
+                \end{block}%
+                \source{}{Marti2002}
+            }%
+        \end{column}%
+        \begin{column}{0.45\linewidth}%
+            \centering%
+            \only<1>{\includegraphics[height=0.8\textheight]{figures/272.jpg}}%
+            \only<2>{\includegraphics[height=0.8\textheight]{figures/iam_page.png}}%
+        \end{column}%
+    \end{columns}%
+\end{frame}%
+
+\begin{frame}{Experimental Evaluation: Implementation}
+    \begin{block}{Training on GW ($\times 4$)}
+        \begin{itemize}
+            \item WordRetrievalNet 120 epochs
+            \item KWS-Simplified 200 epochs
+        \end{itemize}
+        \end{block}
+    \begin{block}{Training on IAM}
+        \begin{itemize}
+            \item WordRetrievalNet 80 epochs
+        \end{itemize}
+    \end{block}
+    \begin{block}{Fine-tuned on GW ($\times 4$)}
+        \begin{itemize}
+            \item TrOCR 20 epochs
+        \end{itemize}
+    \end{block}
+
+    RoBERTa, MPNet, MiniLM: pre-trained
+\end{frame}
+
+\begin{frame}{Experimental Evaluation: WordRetrievalNet}%
+    \includegraphics[width=\textwidth]{figures/results_wrn.png}%
+\end{frame}%
+
+\begin{frame}{Experimental Evaluation: KWS-Simplified}%
+    \includegraphics[width=\textwidth]{figures/results_segfreekws.png}%
+\end{frame}%
+
+\begin{frame}[allowframebreaks]{Experimental Evaluation: Results Overview}%
+    \begin{block}{Baseline: WordRetrievalNet $>$ KWS-Simplified}%
+        {\footnotesize%
+        \begin{center}%
+        \begin{tabular}{|c|c|c|}%
+            \hline%
+                &GW (mAP@25/50)&IAM (mAP@25/50)\\%
+                \hline%
+        WordRetrievalNet &+2.3/+0.9 & +3.0/+2.6 \\%
+        \hline%
+        KWS-Simplified   &+1.2/+0.7 & +1.9/1.2\\%
+        \hline%
+        \end{tabular}%
+        \end{center}%
+        }%
+    \end{block}%
+    \vspace{-0.5cm}
+    \begin{itemize}%
+        \item \footnotesize WordRetrievalNet: query-independent pre-compute word locations
+        \item \footnotesize WordRetrievalNet more candidates $\to$ more efficient re-ranking
+        \item \footnotesize KWS-Simplified fewer candidates to pick from (no query expansion)
+        \item \footnotesize small gains mAP@50 on GW
+    \end{itemize}%
+
+    \begin{block}{Decoder}%
+        \begin{itemize}%
+            \item on GW: KWS-Simplified $>$ TrOCR%
+                \begin{itemize}%
+                    \item[-] mAP@25\%: $+2.3\% > +0.6\%$ %
+                    \item[-] mAP@50\%: $+0.9\% > +0.3\%$%
+                \end{itemize}%%
+            \item on IAM: KWS-Simplified $<$ TrOCR%
+                \begin{itemize}%
+                    \item[-] mAP@25\%: $+2.0\% < +3.0 \%$ %
+                    \item[-] mAP@50\%: $+1.6\% < +2.6\%$%
+                \end{itemize}%%
+            \item \footnotesize final performance shaped by accuracy of initial bounding boxes,
+            not only decoder
+            \item \footnotesize importance of holistic design (end-to-end)
+        \end{itemize}%
+    \end{block}%
+
+    \begin{block}{Semantic LLMs}%
+        \begin{itemize}%
+            \item indistinguishable (usually less 0.3\%, at most 0.5\%)%
+            \item robustness and adaptability
+        \end{itemize}%
+    \end{block}%
+\end{frame}%
+
+\begin{frame}{WordRetrievalNet Results}%
+    \includegraphics[width=\textwidth]{figures/WRN_square.pdf}%
+\end{frame}%
+
+\begin{frame}{KWS-Simplified Results}%
+    \includegraphics[width=\textwidth]{figures/SegFreeKWS_square.pdf}%
+\end{frame}%
+
+\begin{frame}{Visual Examples}
+    \begin{block}{}
+        \begin{center}
+            \includegraphics[width=\linewidth]{figures/forgot_compressed.pdf}
+        \end{center}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Visual Examples}
+    \begin{block}{}
+        \begin{center}
+            \includegraphics[width=\linewidth]{figures/soldiers_compressed.pdf}
+        \end{center}
+    \end{block}
+\end{frame}
+
+
+\section{Conclusion}
+
+\begin{frame}{Conclusions}
+    \footnotesize
+    \begin{itemize}
+        \item promising semantic re-ranking: modular, extension KWS system
+        \item effective generalization across datasets
+        \item consistent gains, adaptable to different LLMs
+        \item low variability
+        \item WordRetrievalNet on IAM
+            \begin{itemize}
+                \item[-]\footnotesize $+3.0\%$ (mAP@25: from $79.15\%$ to $82.12\%$)
+                \item[-]\footnotesize $+2.6\%$ (mAP@50: from $72.85\%$ to $75.43\%$)
+            \end{itemize}
+        \item KWS-Simplified on IAM
+            \begin{itemize}
+                \item[-]\footnotesize $+1.85\%$ (mAP@25: from $86.40\%$ to $88.25\%$)
+                \item[-]\footnotesize $+1.15\%$ (mAP@50: from $63.73\%$ to $64.88\%$)
+            \end{itemize}
+        \item WordRetrievalNet on GW:
+            $+2.3\%$ (mAP@25: from $94.31\%$ to $96.59\%$)
+        \item KWS-Simplified on GW:
+            $+1.2\%$ (mAP@25: from $89.74\%$ to $90.94\%$)
+        \item qualitive improvements
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Future Directions}%
+    \begin{block}{End-to-end semantic representations for segm-free KWS, too}%
+        \begin{itemize}%
+            \item search%
+            \item summarize%
+            \item automatic translation%
+            \item question answering%
+            \item named entity linking%
+        \end{itemize}%
+    \end{block}
+\end{frame}%
+
+
+{\setbeamercolor{palette primary}{fg=ag-blue, bg=ag-beige}
+\begin{frame}[standout]
+    Thanks for your attention!
+\end{frame}
+}
+
+\nocite{*}
+\begin{frame}[allowframebreaks]{References}
+    \footnotesize
+    \printbibliography[heading=none]
+\end{frame}
+
+\end{document}

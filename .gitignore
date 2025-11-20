@@ -1,0 +1,13 @@
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.err
+*.log
+*.nav
+*.out
+*.pdf
+*.snm
+*.toc
+*.vrb
+*.run.xml
